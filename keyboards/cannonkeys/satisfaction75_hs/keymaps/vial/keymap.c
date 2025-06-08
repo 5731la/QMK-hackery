@@ -5,27 +5,6 @@
 #include "print.h"
 
 
-enum custom_keycodes {
-    CTRL_Z = QK_KB_0+3,
-    CTRL_X,
-    CTRL_C,
-    CTRL_V,
-    CTRL_W,
-    CTRL_T,
-    CTRL_Y,
-    CTRL_A,
-    CTRL_S,
-    CTRL_F,
-    CTRL_SLASH,
-    CTRL_SHIFT_T,
-    CTRL_SHIFT_N,
-    CTRL_SHIFT_C,
-    CTRL_SHIFT_V,
-    CTRL_SHIFT_W,
-    ALT_F4,
-    END_OF_ENUM
-};
-
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   [0] = LAYOUT_all(
     KC_ESC,   KC_F1,    KC_F2,    KC_F3,    KC_F4,    KC_F5,    KC_F6,    KC_F7,    KC_F8,    KC_F9,    KC_F10,   KC_F11,   KC_F12,   ENC_PRESS,
@@ -42,20 +21,9 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     _______, _______,   _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,          _______, _______,
     _______, _______,   _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,
     QK_BOOT, _______,   _______,                   _______,                            _______, _______, _______, _______, _______, _______
-  ),
-  [2] = LAYOUT_all(
-    _______, _______,   _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,
-    _______, _______,   _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,
-    _______, _______,   CTRL_W, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,
-    _______, CTRL_A,    CTRL_S,  _______,  CTRL_F, _______, _______, _______, _______, _______, _______, _______,          _______, _______,
-    _______,            CTRL_Z,    CTRL_X,  CTRL_C,  CTRL_V,  _______, _______, _______, _______, _______, _______, _______, _______, _______,
-    _______, _______,   _______,                   _______,                            _______, _______, _______, _______, _______, _______
   )
 };
 
-
-// Define a dict for each custom keycode which contains maps it to
-// a command keycode
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     uprintf("OS: %d", detected_host_os());
@@ -126,29 +94,76 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                         case KC_N:
                             SEND_STRING(SS_LGUI("n"));
                             break;
+                        case KC_P:
+                            SEND_STRING(SS_LGUI("p"));
+                            break;
+                        default:
+                            register_code(KC_LCTL); // Re-register Ctrl for other keys
+                            return true; // Allow default processing for unsupported keys
                     }
                 register_code(KC_LCTL); // Re-register Ctrl for other keys
-
+                    return false;
                 }
             }
 
             // Alt+F4
             if (keycode == KC_F4) {
                 if (alt && !ctrl && !shift && !gui) {
+                    unregister_code(KC_LALT); // Prevents double sending of Alt
                     SEND_STRING(SS_LGUI(SS_TAP(X_Q)));
+                    register_code(KC_LALT); // Re-register Alt for other keys
                     return false;
                 }
             }
 
-            // Ctrl+Delete
-            if (keycode == KC_DEL) {
+            // Ctrl+backspace (delete word)
+            if (keycode == KC_BSPC) {
                 if (ctrl && !alt && !shift && !gui) {
-                    SEND_STRING(SS_LGUI(SS_TAP(X_DEL)));
+                    unregister_code(KC_LCTL); // Prevents double sending of Ctrl
+                    SEND_STRING(SS_LALT(SS_TAP(X_BSPC)));
+                    register_code(KC_LCTL); // Re-register Ctrl for other keys
                     return false;
+                }
+
+            }
+
+            // Cmd+L to Cmd+shift+Q
+            if (keycode == KC_L) {
+                if (!ctrl && !alt && !shift && gui) {
+                    SEND_STRING(SS_LGUI(SS_TAP(X_Q)));
+                    return false; // Prevent default processing
+                }
+            }
+
+            // handle ctrl+arrow keys for word navigation, also set alt+left/right for home/end
+            if (keycode == KC_LEFT || keycode == KC_RGHT) {
+                if (ctrl && !alt && !shift && !gui) {
+                    unregister_code(KC_LCTL); // Prevents double sending of Ctrl
+                    switch (keycode) {
+                        case KC_LEFT:
+                            SEND_STRING(SS_LALT(SS_TAP(X_LEFT)));
+                            break; // Prevent default processing
+                        case KC_RGHT:
+                            SEND_STRING(SS_LALT(SS_TAP(X_RGHT)));
+                            break; // Prevent default processing
+                    }
+                    register_code(KC_LCTL); // Re-register Ctrl for other keys
+                    return false;
+                } else if (alt && !ctrl && !shift && !gui) {
+                    unregister_code(KC_LALT); // Prevents double sending of Ctrl
+                    switch (keycode) {
+                        case KC_LEFT:
+                            SEND_STRING(SS_LGUI(SS_TAP(X_LEFT)));
+                            break; // Prevent default processing
+                        case KC_RGHT:
+                            SEND_STRING(SS_LGUI(SS_TAP(X_RGHT)));
+                            break; // Prevent default processing
+                    }
+                    register_code(KC_LALT); // Re-register Alt for other keys
+                    return false; // Prevent default processing
                 }
             }
             return true; // Allow default processing for other keys
-
         default:
             return true; // Unsupported OS, allow default processing
     }

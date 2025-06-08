@@ -127,10 +127,10 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 
             }
 
-            // Cmd+L to Cmd+shift+Q
+            // Cmd+L to Cmd+ctrl+Q
             if (keycode == KC_L) {
                 if (!ctrl && !alt && !shift && gui) {
-                    SEND_STRING(SS_LGUI(SS_TAP(X_Q)));
+                    SEND_STRING(SS_LCTL(SS_TAP(X_Q)));
                     return false; // Prevent default processing
                 }
             }

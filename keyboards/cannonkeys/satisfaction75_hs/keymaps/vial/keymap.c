@@ -163,6 +163,22 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
                     return false; // Prevent default processing
                 }
             }
+            // handle alt+up/down for page up/down
+            if (keycode == KC_UP || keycode == KC_DOWN) {
+                if (!ctrl && alt && !shift && !gui) {
+                    unregister_code(KC_LALT);
+                    switch (keycode) {
+                    case KC_UP:
+                        SEND_STRING(SS_TAP(X_PGUP));
+                        break;
+                    case KC_DOWN:
+                        SEND_STRING(SS_TAP(X_PGDN));
+                        break;
+                    }
+                    register_code(KC_LALT);
+                    return false;
+                }
+            }
             return true; // Allow default processing for other keys
         default:
             return true; // Unsupported OS, allow default processing

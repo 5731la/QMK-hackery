@@ -185,3 +185,12 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     }
 }
 
+uint32_t no_op_timer = 0; // Timer variable to avoid USB hub putting keyboard to sleep
+
+void matrix_scan_user(void) {
+    if (timer_elapsed(no_op_timer) > 1000) { // Check if 1000 ms (1 second) has passed
+        // Force a keyboard report update
+        host_keyboard_send(keyboard_report);
+        no_op_timer = timer_read(); // Reset the timer
+    }
+}
